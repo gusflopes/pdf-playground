@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Type } from '@nestjs/common';
 import './string.extensions';
 // import dtos
 type PdfFileProperties = {
@@ -24,12 +24,98 @@ type ParserParameter = {
 };
 type Parser = ParserParameter[];
 
+type PdfParser = {
+  name: string;
+  description?: string;
+  // fields: Array<string>;
+  parameters: ParserParameter[];
+};
+type PdfParserOutput = {
+  date: string;
+  amount: string;
+  name: string;
+  cpfCnpj: string;
+};
+
+const parserExample: PdfParser = {
+  name: 'P_COMPROVANTE_ITAU_PIX',
+  description: 'Comprovante de Pagamento de PIX do Itaú',
+  // fields: ['date', 'amount', 'name', 'cpfCnpj'],
+  parameters: [
+    {
+      field: 'date',
+      regexMethod: false,
+      firstIndex: 'data da transferência:',
+      secondIndex: / tipo de pagamento:/gm,
+    },
+    {
+      field: 'amount',
+      regexMethod: false,
+      firstIndex: 'valor:',
+      secondIndex: / data da transferência:/gm,
+    },
+    {
+      field: 'name',
+      regexMethod: false,
+      firstIndex: 'nome do recebedor:',
+      secondIndex: / CPF \/ CNPJ do recebedor/gm,
+    },
+    {
+      field: 'cpfCnpj',
+      regexMethod: false,
+      firstIndex: 'CPF / CNPJ do recebedor:',
+      secondIndex: / instituição:/gm,
+    },
+  ],
+};
+
+const parsers = [parserExample];
+
+interface IReadFiles {
+  files: Array<Express.Multer.File>;
+  parser: string;
+  raw?: boolean;
+}
+
 @Injectable()
 export class ReceiptsService {
   private pdf = require('pdf-parse');
 
+  async readFiles({ files, parser, raw = false }: IReadFiles) {
+    const response = await Promise.all(
+      files.map(async (f) => {
+        console.log(f.filename);
+        return await this.readFile(f, parser, raw);
+      }),
+    );
+    return response;
+  }
+
+  async readFile(file: Express.Multer.File, parser: string, raw = false) {
+    const firstStep = await this.readPdf(file);
+    const secondStep = await this.cleanPdfString(firstStep);
+
+    const selectedParser = parsers.find((p) => p.name === parser);
+    console.log(selectedParser.name);
+    if (!selectedParser) return 'The parser is incorrect.';
+
+    const parameters: Parser = selectedParser.parameters;
+    const thirdStep = await this.finalParser(secondStep, parameters);
+
+    return {
+      transaction: {
+        ...thirdStep,
+        cpfCnpj: thirdStep.cpfCnpj
+          ? await this.formatCpfCnpj(thirdStep.cpfCnpj)
+          : null,
+      },
+      raw: raw ? secondStep : undefined,
+    };
+  }
+
   private async readPdf(file: Express.Multer.File) {
     const data: PdfFileProperties = await this.pdf(file.buffer);
+    // console.log(data);
     const dataJSON = JSON.stringify(data.text);
     return dataJSON;
   }
@@ -52,34 +138,20 @@ export class ReceiptsService {
     secondIndex: RegExp,
     data: string,
   ) {
-    const startString =
-      (await data.regexIndexOf(firstIndex, 1)) + firstIndex.length;
+    const startString = data.regexIndexOf(firstIndex, 1) + firstIndex.length;
     // console.log('startString', startString);
 
-    const endString = await data.regexIndexOf(secondIndex, 0);
+    const endString = data.regexIndexOf(secondIndex, 0);
     // console.log('endString', endString);
 
-    const output = await data.substring(startString, endString);
+    const output = data.substring(startString, endString);
     // console.log('output', output);
     return output;
-  }
-
-  private async callParser(input: string, parameter: ParserParameter) {
-    if (parameter.regexMethod) {
-      return this.regexParser(parameter.secondIndex, input);
-    } else {
-      return await this.stringParser(
-        parameter.firstIndex,
-        parameter.secondIndex,
-        input,
-      );
-    }
   }
 
   private async customParser(string: string, parameters: Parser) {
     const resultPromises = Promise.all(
       parameters.map(async (p: ParserParameter) => {
-        // await this.callParser(string, p);
         if (p.regexMethod) {
           return this.regexParser(p.secondIndex, string);
         } else {
@@ -174,49 +246,5 @@ export class ReceiptsService {
       );
     }
     return data;
-  }
-
-  async readFile(dto: any) {
-    const firstStep = await this.readPdf(dto);
-    const secondStep = await this.cleanPdfString(firstStep);
-    // data | valor | favorecido | cpf/cnpj
-    const parameters: Parser = [
-      {
-        field: 'date',
-        regexMethod: false,
-        firstIndex: 'data da transferência:',
-        secondIndex: / tipo de pagamento:/gm,
-      },
-      {
-        field: 'amount',
-        regexMethod: false,
-        firstIndex: 'valor:',
-        secondIndex: / data da transferência:/gm,
-      },
-      {
-        field: 'name',
-        regexMethod: false,
-        firstIndex: 'nome do recebedor:',
-        secondIndex: / CPF \/ CNPJ do recebedor/gm,
-      },
-      {
-        field: 'cpfCnpj',
-        regexMethod: false,
-        firstIndex: 'CPF / CNPJ do recebedor:',
-        secondIndex: / instituição:/gm,
-        formatFn: this.formatCpfCnpj,
-      },
-    ];
-    const thirdStep = await this.finalParser(secondStep, parameters);
-
-    return {
-      transaction: {
-        ...thirdStep,
-        cpfCnpj: thirdStep.cpfCnpj
-          ? await this.formatCpfCnpj(thirdStep.cpfCnpj)
-          : null,
-      },
-      raw: secondStep,
-    };
   }
 }
