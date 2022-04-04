@@ -14,6 +14,7 @@ const config: Options = {
   entitiesTs: ['src/**/*.entity.ts'],
   debug: true,
   loadStrategy: LoadStrategy.JOINED,
+  forceUtcTimezone: true,
   // highlighter: new SqlHighlighter(),
   // metadataProvider: TsMorphMetadataProvider,
   registerRequestContext: false,

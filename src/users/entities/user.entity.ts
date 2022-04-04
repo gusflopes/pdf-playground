@@ -1,8 +1,8 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
 
-@Entity()
+@Entity({ tableName: 'users' })
 export class User {
-  @PrimaryKey()
+  @PrimaryKey({ autoincrement: true })
   id: number;
 
   @Property()
