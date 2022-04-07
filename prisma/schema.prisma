@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Posteriormente vai ter que amarrar `user_id` em todos os models
+
+model User {
+  id       String    @id @default(uuid())
+  name     String
+  email    String    @unique
+  password String
+  accounts Account[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@map("users")
+}
+
+model Account {
+  id        String  @id @default(uuid())
+  owner     User?   @relation(fields: [user_id], references: [id])
+  user_id   String
+  name      String
+  bank_code String
+  branch    String?
+  number    String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  receipts Receipt[]
+  batches  Batch[]
+  files    File[]
+
+  @@map("accounts")
+}
+
+model Batch {
+  id               String           @id @default(uuid())
+  account          Account          @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  account_id       String
+  parser           Parser
+  transaction_type TransactionTypes
+  name             String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  receipts Receipt[]
+  files    File[]
+
+  @@map("batches")
+}
+
+model Receipt {
+  id         BigInt  @id @default(autoincrement()) @db.BigInt
+  account_id String
+  batch_id   String?
+  file_id    BigInt? @db.BigInt
+  account    Account @relation(fields: [account_id], references: [id])
+  batch      Batch?  @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  file       File?   @relation(fields: [file_id], references: [id])
+
+  date     DateTime
+  amount   Decimal  @db.Decimal(12, 2)
+  payee    String
+  cpf_cnpj String
+  pix      String
+
+  type    String?
+  memo    String?
+  exclude Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("receipts")
+}
+
+model File {
+  id         BigInt   @id @default(autoincrement()) @db.BigInt
+  receipt    Account? @relation(fields: [receipt_id], references: [id], onDelete: SetNull)
+  receipt_id String?
+  batch      Batch?   @relation(fields: [batch_id], references: [id])
+  batch_id   String?
+
+  path String
+  file String
+  ext  String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  Receipt Receipt[]
+  @@map("receipts_data")
+}
+
+// Tipos de Transação: PIX, TED, DOC, Boleto, TRANSF, ???
+
+enum TransactionTypes {
+  PIX
+  DOC
+  TEDC // TED TIPO "C"
+  TEDD // TED TIPO "D"
+  TRANF // TRANSFERÊNCIA
+}
+
+enum Parser {
+  // Parser_BANCO_TRANSACAO
+  // P_ITAU_PIX
+  P_341_PIX // Parser: Itau Pix
+  P_748_TED // Parser: Sicredi TED
+  // P_748_TEDD // Parser: Sicredi TED Tipo "D"
+}
