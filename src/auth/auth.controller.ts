@@ -23,10 +23,7 @@ export class AuthController {
   }
 
   @Get('/refresh')
-  refreshToken(@Headers('Authorization') headers: string) {
-    console.log(headers);
-    const [_, token] = headers.split(' ');
-    console.log(token);
-    return this.authService.refreshToken(token);
+  refreshToken(@Headers('Authorization') authorization: string) {
+    return this.authService.refreshToken(authorization);
   }
 }

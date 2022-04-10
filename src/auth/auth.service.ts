@@ -79,8 +79,8 @@ export class AuthService {
   }
 
   generateTokens(payload: { userId: string }): Token {
-    console.log('JWT Access: ', this.configService.get('JWT_ACCESS_SECRET'));
-    console.log('JWT Refresh: ', this.configService.get('JWT_REFRESH_SECRET'));
+    // console.log('JWT Access: ', this.configService.get('JWT_ACCESS_SECRET'));
+    // console.log('JWT Refresh: ', this.configService.get('JWT_REFRESH_SECRET'));
 
     return {
       accessToken: this.generateAccessToken(payload),
@@ -104,7 +104,8 @@ export class AuthService {
     });
   }
 
-  refreshToken(token: string) {
+  refreshToken(authHeader: string) {
+    const [_, token] = authHeader.split(' ');
     try {
       const { userId } = this.jwtService.verify(token, {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
