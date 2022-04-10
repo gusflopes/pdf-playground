@@ -79,7 +79,8 @@ export class AuthService {
   }
 
   generateTokens(payload: { userId: string }): Token {
-    console.log('JWT Refresh', this.configService.get('JWT_REFRESH_SECRET'));
+    console.log('JWT Access: ', this.configService.get('JWT_ACCESS_SECRET'));
+    console.log('JWT Refresh: ', this.configService.get('JWT_REFRESH_SECRET'));
 
     return {
       accessToken: this.generateAccessToken(payload),
@@ -88,14 +89,18 @@ export class AuthService {
   }
 
   private generateAccessToken(payload: { userId: string }): string {
-    return this.jwtService.sign(payload);
+    const securityConfig = this.configService.get<SecurityConfig>('security');
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_ACCESS_SECRET'),
+      expiresIn: securityConfig.expiresIn,
+    });
   }
 
   private generateRefreshToken(payload: { userId: string }): string {
     const securityConfig = this.configService.get<SecurityConfig>('security');
     return this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: securityConfig.expiresIn,
+      expiresIn: securityConfig.refreshIn,
     });
   }
 

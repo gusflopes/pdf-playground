@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
 import { PublicRoute } from 'src/common/decorators/public-route.decorator';
 import { AuthService } from './auth.service';
 import { SigninDto } from './dto/signin.dto';
@@ -20,5 +20,13 @@ export class AuthController {
   signIn(@Body() payload: SigninDto) {
     console.log(payload);
     return this.authService.login(payload);
+  }
+
+  @Get('/refresh')
+  refreshToken(@Headers('Authorization') headers: string) {
+    console.log(headers);
+    const [_, token] = headers.split(' ');
+    console.log(token);
+    return this.authService.refreshToken(token);
   }
 }
