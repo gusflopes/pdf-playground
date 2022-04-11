@@ -4,6 +4,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 // import { PrismaService } from './prisma.service';
 import { PrismaClientExceptionFilter, PrismaService } from 'nestjs-prisma';
+import { ConfigService } from '@nestjs/config';
+import { CorsConfig, NestConfig } from './common/configs/config.interface';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -22,6 +24,15 @@ async function bootstrap() {
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
-  await app.listen(3000);
+  const configService = app.get(ConfigService);
+  const nestConfig = configService.get<NestConfig>('nest');
+  const corsConfig = configService.get<CorsConfig>('cors');
+
+  // Cors
+  if (corsConfig.enabled) {
+    app.enableCors();
+  }
+
+  await app.listen(process.env.PORT || nestConfig.port || 3000);
 }
 bootstrap();
