@@ -15,6 +15,14 @@ import { SecurityConfig } from 'src/common/configs/config.interface';
 import { Prisma, User } from '@prisma/client';
 import { SigninDto } from './dto/signin.dto';
 
+interface UserWithoutPassword {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -73,7 +81,7 @@ export class AuthService {
     return this.usersService.findUserById(userId);
   }
 
-  getUserFromToken(token: string): Promise<User> {
+  async getUserFromToken(token: string): Promise<User> {
     const id = this.jwtService.decode(token)['userId'];
     return this.usersService.findUserById(id);
   }

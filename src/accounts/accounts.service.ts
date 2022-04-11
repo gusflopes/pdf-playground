@@ -1,31 +1,87 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { Account, Prisma } from '@prisma/client';
+import { PrismaService } from 'nestjs-prisma';
+
+interface IAccountsService {
+  create: (input: CreateAccountDto, scope: string) => Promise<Account>;
+  findAll: (scope: string) => Promise<Account[]>;
+  findOne: (id: string, scope: string) => Promise<any>;
+  update: (
+    id: string,
+    payload: UpdateAccountDto,
+    scope: string,
+  ) => Promise<Account>;
+  remove: (id: string, scope: string) => Promise<any>;
+}
 
 @Injectable()
-export class AccountsService {
-  // constructor(
-  //   @InjectRepository(Account)
-  //   private accountRepository: EntityRepository<Account>,
-  // ) {}
+export class AccountsService implements IAccountsService {
+  constructor(private prisma: PrismaService) {}
 
-  async create(createAccountDto: CreateAccountDto) {
-    return `This action create an account`;
+  async create(payload: CreateAccountDto, scope: string) {
+    const account = await this.prisma.account.create({
+      data: {
+        user_id: scope,
+        ...payload,
+      },
+    });
+    console.log(payload);
+    return account;
   }
 
-  async findAll() {
-    return `This action finds all accounts`;
+  async findAll(id: string) {
+    return this.prisma.account.findMany({
+      where: { user_id: { equals: id } },
+    });
   }
 
-  async findOne(id: number) {
-    return `This action finds an #${id} account`;
+  async findOne(id: string, scope: string) {
+    return this.prisma.account.findFirst({
+      where: {
+        id: id,
+        AND: {
+          user_id: {
+            equals: scope,
+          },
+        },
+      },
+    });
   }
 
-  update(id: number, updateAccountDto: UpdateAccountDto) {
-    return `This action updates an #${id} account`;
+  async update(id: string, payload: UpdateAccountDto, scope: string) {
+    console.log(id);
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id,
+        AND: {
+          user_id: scope,
+        },
+      },
+    });
+
+    if (!account) {
+      throw new NotFoundException(`Couldn't find the account ${id}`);
+    }
+
+    return this.prisma.account.update({ where: { id }, data: payload });
   }
 
-  remove(id: number) {
-    return `This action removes an #${id} account`;
+  async remove(id: string, scope: string) {
+    const account = await this.prisma.account.findUnique({ where: { id } });
+    if (!account) {
+      throw new NotFoundException(`Couldn't find the account ${id}`);
+    }
+    console.log('scope: ', scope);
+    console.log('user_id: ', account.user_id);
+    if (account.user_id !== scope) {
+      throw new BadRequestException(`Couldn't find the account ${id}`);
+    }
+    return this.prisma.account.delete({ where: { id } });
   }
 }

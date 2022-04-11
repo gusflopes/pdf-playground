@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -8,8 +8,9 @@ import { PrismaModule } from 'nestjs-prisma';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import config from 'src/common/configs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, RouterModule } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { BatchesModule } from './batches/batches.module';
 
 @Module({
   imports: [
@@ -17,14 +18,22 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     PrismaModule.forRoot({
       isGlobal: true,
       prismaServiceOptions: {
-        // import { loggingMiddleware } from 'src/common/middleware/logging.middleware';
+        // import { loggingMiddleware } from 'src/common/middlewares/logging.middleware';
         // middlewares: [loggingMiddleware()], // prisma middleware?
       },
     }),
+    RouterModule.register([
+      {
+        path: 'accounts',
+        module: AccountsModule,
+        children: [{ path: ':id/batches', module: BatchesModule }],
+      },
+    ]),
     UsersModule,
     ReceiptsModule,
     AccountsModule,
     AuthModule,
+    BatchesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

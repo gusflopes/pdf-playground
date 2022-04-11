@@ -9,22 +9,16 @@ export class CreateAccountDto {
   @IsString()
   name: string;
   @IsString()
+  bank_code: string;
+  @IsString()
   @IsOptional()
-  code?: string;
-  // @IsNumber()
-  // openBalance: number;
-  // @IsDateString()
-  // openDate: DateTime;
-  @IsBoolean()
+  branch?: string;
+  @IsString()
   @IsOptional()
-  isBank?: boolean;
-
-  // bank_details: {
-  //   code?: string;
-  //   bank_code?: string;
-  //   bank_name?: string;
-  //   branch?: string;
-  //   number?: string;
-  //   type?: AccountType;
-  // };
+  number?: string;
 }
+
+// name      String
+// bank_code String
+// branch    String?
+// number    String?
