@@ -3,6 +3,9 @@ import { CreateBatchDto } from './dto/create-batch.dto';
 import { UpdateBatchDto } from './dto/update-batch.dto';
 import './string.extensions';
 import './batches.types';
+import { DateTime } from 'luxon';
+import { PrismaService } from 'nestjs-prisma';
+import { Batch, Receipt } from '@prisma/client';
 
 const parserExample: PdfParser = {
   name: 'P_341_PIX', // 'P_COMPROVANTE_ITAU_PIX',
@@ -41,59 +44,76 @@ const parsers = [parserExample];
 interface IBatchesService {
   handle: (dto: IBatchServiceInput) => Promise<any>;
 }
+interface IBatchServiceData extends CreateBatchDto {
+  account_id: string;
+}
 
 interface IBatchServiceInput {
   files: Array<Express.Multer.File>;
-  data: CreateBatchDto;
+  data: IBatchServiceData;
   scope: string;
   raw?: boolean;
 }
 
+interface ITransaction {
+  date: DateTime;
+  amount: string;
+  name: string;
+  cpfCnpj?: string;
+  raw?: string;
+}
+
 @Injectable()
 export class BatchesService implements IBatchesService {
+  constructor(private prisma: PrismaService) {}
+
   private pdf = require('pdf-parse');
 
   async handle(input: IBatchServiceInput) {
-    const { files } = input;
+    const { files, data, scope, raw } = input;
 
     const response = await Promise.all(
       files.map(async (f) => {
         console.log(f.originalname);
-        return await this.readFile(f, parserExample.name, false);
+        return await this.readFile(f, data.parser, raw);
       }),
     );
+
+    // const newData = await this.prisma.batch.create({
+    //   data: {
+    //     name: input.data.name,
+    //     account_id: input.data.account_id,
+    //     transaction_type: input.data.transaction_type,
+    //     parser: input.data.parser,
+    //     receipts: {
+    //       createMany: { data: [response] },
+    //     },
+    //   },
+    // });
 
     return response;
   }
 
-  private async readFiles({ files, parser, raw = false }: IReadFiles) {
-    const response = await Promise.all(
-      files.map(async (f) => {
-        console.log(f.filename);
-        return await this.readFile(f, parser, raw);
-      }),
-    );
-    return response;
-  }
-
-  async readFile(file: Express.Multer.File, parser: string, raw = false) {
+  async readFile(
+    file: Express.Multer.File,
+    parser: string,
+    raw = false,
+  ): Promise<ITransaction> {
     const firstStep = await this.readPdf(file);
     const secondStep = await this.cleanPdfString(firstStep);
 
     const selectedParser = parsers.find((p) => p.name === parser);
     console.log(selectedParser.name);
-    if (!selectedParser) return 'The parser is incorrect.';
+    if (!selectedParser) return;
 
     const parameters: Parser = selectedParser.parameters;
     const thirdStep = await this.finalParser(secondStep, parameters);
 
     return {
-      transaction: {
-        ...thirdStep,
-        cpfCnpj: thirdStep.cpfCnpj
-          ? await this.formatCpfCnpj(thirdStep.cpfCnpj)
-          : null,
-      },
+      ...thirdStep,
+      cpfCnpj: thirdStep.cpfCnpj
+        ? await this.formatCpfCnpj(thirdStep.cpfCnpj)
+        : null,
       raw: raw ? secondStep : undefined,
     };
   }
@@ -153,7 +173,7 @@ export class BatchesService implements IBatchesService {
     const pdfParsed = await this.customParser(cleanPdfString, parameters);
 
     console.log('Extracted data in Array format: ', pdfParsed);
-    const resultObj = {} as any;
+    const resultObj = {} as ITransaction;
     let index = 0;
     for (const obj of parameters) {
       // const objValues = Object.values(obj);

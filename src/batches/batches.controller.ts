@@ -22,15 +22,18 @@ export class BatchesController {
   async uploadFiles(
     @Body() payload: CreateBatchDto,
     @UploadedFiles() files: Array<Express.Multer.File>,
+    @Param('id') accountId,
   ) {
-    console.log(files);
-    console.log(payload);
+    // console.log(files);
+    // console.log(payload);
+    console.log(accountId);
 
     const response = await this.batchesService.handle({
-      data: payload,
+      data: { account_id: accountId, ...payload },
       files,
       scope: 'clientId',
     });
+
     // console.log(dto);
     // const transactions = await this.receiptsService.readFiles({
     //   files,

@@ -5,7 +5,7 @@ export class CreateBatchDto {
   @IsString()
   name: string;
   @IsEnum(Parser)
-  parser: string;
+  parser: Parser;
   @IsEnum(TransactionTypes)
-  transaction_type: string;
+  transaction_type: TransactionTypes;
 }
