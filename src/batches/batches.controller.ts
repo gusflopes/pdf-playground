@@ -23,7 +23,7 @@ export class BatchesController {
     @Body() payload: CreateBatchDto,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Param('id') accountId,
-  ) {
+  ): Promise<any> {
     // console.log(files);
     // console.log(payload);
     console.log(accountId);
