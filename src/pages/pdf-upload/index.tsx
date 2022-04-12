@@ -1,6 +1,6 @@
 // import React from 'react';
 import type { NextPage } from 'next';
-import '../styles/pdf-upload.module.css';
+import classes from './styles.module.scss';
 import { useDropzone, FileRejection, DropzoneState } from 'react-dropzone';
 import styled from 'styled-components';
 import { useState, useEffect, useMemo } from 'react';
