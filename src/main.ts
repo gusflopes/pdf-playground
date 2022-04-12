@@ -24,8 +24,6 @@ async function bootstrap() {
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
-<<<<<<< HEAD
-=======
   const configService = app.get(ConfigService);
   const nestConfig = configService.get<NestConfig>('nest');
   const corsConfig = configService.get<CorsConfig>('cors');
@@ -36,6 +34,5 @@ async function bootstrap() {
   }
 
   await app.listen(process.env.PORT || nestConfig.port || 3000);
->>>>>>> a351da2caec15b32ffa1980910de602db95a9eca
 }
 bootstrap();
