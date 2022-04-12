@@ -1,0 +1,16 @@
+.parser-selector > button {
+  margin: 6px 12px;
+}
+
+.parser-list > li {
+    list-style: none;
+    /* border-bottom: 1px solid transparent */
+    /* color: #61dafb; */
+    margin-bottom: 6px;
+}
+.parser-list > li:hover {
+  text-decoration: underline;
+  /* transition-delay: 0.2s; */
+  /* color: #61dafb; */
+  /* border-color: #61dafb; */
+}
