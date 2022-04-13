@@ -5,6 +5,7 @@ import { useDropzone, FileRejection, DropzoneState } from 'react-dropzone';
 import styled from 'styled-components';
 import { useState, useEffect, useMemo } from 'react';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import Button from '../../components/Button';
 
 const getColor = (props: any) => {
   if (props.isDragAccept) {
@@ -119,8 +120,12 @@ const PdfUpload: NextPage = () => {
 
   useEffect(() => {
     async function getParsers() {
-      const response = await axios.get(`http://localhost:3333/parsers`);
-      setParsers(response.data);
+      try {
+        const response = await axios.get(`http://localhost:3333/parsers`);
+        setParsers(response.data);
+      } catch (err) {
+        console.log(err);
+      }
     }
     getParsers();
   }, []);
@@ -155,7 +160,7 @@ const PdfUpload: NextPage = () => {
           <span className="parser-selector">
             <strong>Parser: </strong>
             {selectedParser}
-            <button onClick={() => setSelectedParser('')}>Limpar</button>
+            <Button onClick={() => setSelectedParser('')}>Limpar</Button>
           </span>
         ) : (
           <>
@@ -184,9 +189,9 @@ const PdfUpload: NextPage = () => {
         </FileContainer>
       </main>
       <nav style={{ marginTop: 18 }}>
-        <button onClick={() => setFiles([])}>Clear All</button>
-        <button onClick={() => console.log(files)}>LOG !</button>
-        <button onClick={() => handleUpload()}>SAVE</button>
+        <Button onClick={() => setFiles([])}>Clear All</Button>
+        <Button onClick={() => console.log(files)}>LOG !</Button>
+        <Button onClick={() => handleUpload()}>SAVE</Button>
       </nav>
       <aside>
         <h4>Accepted Files</h4>
