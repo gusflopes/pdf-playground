@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import { useState, useEffect, useMemo } from 'react';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import Button from '../../components/Button';
+import Navbar from '../../components/Navbar';
 
 const getColor = (props: any) => {
   if (props.isDragAccept) {
@@ -150,7 +151,8 @@ const PdfUpload: NextPage = () => {
   );
 
   return (
-    <div className="App">
+    <>
+      <Navbar />
       <header className="App-header">
         <h1>CTOOLS: Banking Receipt PDF Parser</h1>
       </header>
@@ -207,7 +209,7 @@ const PdfUpload: NextPage = () => {
             </li>
           ))}
       </aside>
-    </div>
+    </>
   );
 };
 

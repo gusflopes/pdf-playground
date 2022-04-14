@@ -4,12 +4,13 @@ import { XIcon } from '@heroicons/react/outline';
 import Button from '../Button';
 
 type CustomProps = {
+  name: string;
   title?: string;
   children: JSX.Element;
   // toggle: void;
 };
 
-const SlideOver: React.FC<CustomProps> = ({ children, title }) => {
+const SlideOver: React.FC<CustomProps> = ({ name, title, children }) => {
   const [open, setOpen] = useState(false);
   const toggle = () => {
     setOpen(!open);
@@ -17,8 +18,12 @@ const SlideOver: React.FC<CustomProps> = ({ children, title }) => {
 
   return (
     <>
-      <Button type="button" onClick={toggle}>
-        Open this Modal
+      <Button
+        type="button"
+        onClick={toggle}
+        className="btn bg-accent text-base-100 hover:bg-secondary"
+      >
+        {name}
       </Button>
 
       <Transition.Root show={open} as={Fragment}>
@@ -49,7 +54,7 @@ const SlideOver: React.FC<CustomProps> = ({ children, title }) => {
                 leaveFrom="translate-x-0"
                 leaveTo="translate-x-full"
               >
-                <div className="pointer-events-auto relative w-screen max-w-xl">
+                <div className="pointer-events-auto relative w-screen max-w-lg">
                   <Transition.Child
                     as={Fragment}
                     enter="ease-in-out duration-500"
@@ -70,13 +75,13 @@ const SlideOver: React.FC<CustomProps> = ({ children, title }) => {
                       </button>
                     </div>
                   </Transition.Child>
-                  <div className="flex h-full flex-col overflow-y-scroll bg-white py-6 shadow-xl">
+                  <div className="flex h-full flex-col overflow-y-scroll bg-base-100 py-6 shadow-xl">
                     <div className="px-4 sm:px-6">
                       <Dialog.Title className="text-lg font-medium text-gray-900">
                         {title ? title : null}
                       </Dialog.Title>
                     </div>
-                    <div className="relative mt-6 flex-1 px-4 sm:px-6">
+                    <div className="relative mt-6 flex-1 px-4 sm:px-6 bg-base-100">
                       {/* Replace with your content */}
                       <div className="absolute inset-0 px-4 sm:px-6">
                         <div
