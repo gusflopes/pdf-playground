@@ -14,7 +14,7 @@ export function getAPIClient<IGetApiClient>(ctx?: any) {
   const { 'pdfapp.accessToken': accessToken } = parseCookies(ctx);
 
   const api = axios.create({
-    baseURL: 'http://localhost:3333',
+    baseURL: 'http://localhost:3334',
   });
 
   api.interceptors.request.use((config) => {
