@@ -2,8 +2,7 @@ import { AxiosResponse } from 'axios';
 import { setCookie, destroyCookie } from 'nookies';
 import { createContext, ReactNode, useState } from 'react';
 import { api } from '../providers/api';
-import { decode, DecodeOptions } from 'jsonwebtoken';
-import { JwtPayload } from '@types/jsonwebtoken';
+import { decode, DecodeOptions, JwtPayload } from 'jsonwebtoken';
 
 type LoginCredentials = {
   email: string;

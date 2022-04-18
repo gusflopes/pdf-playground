@@ -6,7 +6,7 @@ import NextLink from '../NextLink';
 import SlideOver from '../SlideOver';
 import Profile from '../Profile';
 
-const NewNavbar: React.FC = () => {
+const Navbar: React.FC = () => {
   return (
     <div className="navbar bg-neutral text-base-100 ">
       <div className="navbar-start">
@@ -33,4 +33,4 @@ const NewNavbar: React.FC = () => {
   );
 };
 
-export default NewNavbar;
+export default Navbar;

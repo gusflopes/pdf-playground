@@ -15,7 +15,7 @@ export const Menu: FC<CustomProps> = ({ dropdown }) => {
       }
     >
       <li className="hover:bg-secondary">
-        <a>Contas</a>
+        <NextLink href="/accounts">Contas</NextLink>
       </li>
       <li tabIndex={0} className="hover:bg-secondary">
         <a>
