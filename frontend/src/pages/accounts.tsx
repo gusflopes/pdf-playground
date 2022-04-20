@@ -3,6 +3,7 @@ import { NextPage } from 'next';
 import { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { api } from '../providers/api';
+import { useForm } from 'react-hook-form';
 
 type Account = {
   id: string;
@@ -17,6 +18,58 @@ type Account = {
 
 const Accounts: NextPage = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [currentAccount, setCurrentAccount] = useState({} as Account);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    resetField,
+  } = useForm();
+
+  const onSubmit = async (data: Partial<Account>) => {
+    // ...
+    console.log('New Account: ', !isEditing);
+    console.log(data);
+
+    // Create new account
+    if (!isEditing) {
+      try {
+        const newAccount: AxiosResponse<Account> = await api.post(
+          '/accounts',
+          data
+        );
+        setAccounts((accounts) => [...accounts, newAccount.data]);
+        setCurrentAccount(newAccount.data);
+
+        console.log(newAccount);
+        return;
+      } catch (err) {
+        console.log(err);
+        if (axios.isAxiosError(err)) {
+          console.log('axios error: ', err);
+          console.log('error code: ', err.code);
+          // console.log(err.code === ' ');
+        } else {
+          console.log('Unexpected Error: ', err);
+        }
+      }
+    }
+    console.log('Updating account: ', currentAccount.id);
+
+    // Update account
+  };
+
+  const resetForm = () => {
+    // clear form
+    setIsEditing(false);
+    setCurrentAccount({} as Account);
+    for (const [key] of Object.entries(currentAccount)) {
+      resetField(key);
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -39,11 +92,28 @@ const Accounts: NextPage = () => {
     fetchData();
   }, []);
 
-  function handleEdit(id: string) {
+  const handleSelect = (id: string) => {
     console.log('Edit account: ', id);
-    const account = accounts.find((a) => a.id === id);
-    console.log(account);
-  }
+    const selectedAccount = accounts.find((a) => a.id === id);
+    if (!selectedAccount) {
+      return;
+    }
+    setCurrentAccount(selectedAccount);
+    setIsEditing(true);
+    // update the form
+
+    for (const [key, value] of Object.entries(selectedAccount)) {
+      setValue(key, value);
+      // console.log(`updating key: ${key}`);
+    }
+    console.log(selectedAccount);
+  };
+
+  const handleDelete = (id: string) => {
+    console.log('Delete account: ', id);
+    if (id === currentAccount.id) resetForm;
+    // delete account api
+  };
 
   return (
     <Layout>
@@ -52,11 +122,29 @@ const Accounts: NextPage = () => {
         {accounts &&
           accounts.map((a) => (
             <li key={a.id}>
-              {a.bank_code} - {a.name} -{' '}
-              <button onClick={() => handleEdit(a.id)}>Editar</button>
+              {a.bank_code} - {a.name} - {a.branch} - {a.number}
+              <button onClick={() => handleSelect(a.id)}>Editar</button>
+              <button onClick={() => handleDelete(a.id)}>Excluir</button>
             </li>
           ))}
       </ul>
+      <h2>----</h2>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <label>name</label>
+        <input type="text" {...register('name')} />
+        {errors.name && <span>Name is required.</span>}
+        <label>bank_code</label>
+        <input type="text" {...register('bank_code')} />
+        {errors.bank_code && <span>Bank_code is required.</span>}
+        <label>branch</label>
+        <input type="text" {...register('branch')} />
+        <label>number</label>
+        <input type="text" {...register('number')} />
+        <button type="submit">Enviar</button>
+        <button type="button" onClick={resetForm}>
+          Limpar
+        </button>
+      </form>
     </Layout>
   );
 };
