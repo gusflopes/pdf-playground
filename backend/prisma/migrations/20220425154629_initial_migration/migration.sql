@@ -45,14 +45,16 @@ CREATE TABLE "batches" (
 
 -- CreateTable
 CREATE TABLE "receipts" (
-    "id" BIGSERIAL NOT NULL,
+    "id" TEXT NOT NULL,
     "account_id" TEXT NOT NULL,
     "batch_id" TEXT,
-    "file_id" BIGINT,
-    "date" TIMESTAMP(3) NOT NULL,
+    "file_id" TEXT,
+    "date" TEXT NOT NULL,
     "amount" DECIMAL(12,2) NOT NULL,
     "payee" TEXT NOT NULL,
     "cpf_cnpj" TEXT NOT NULL,
+    "pix" TEXT,
+    "raw" TEXT,
     "type" TEXT,
     "memo" TEXT,
     "exclude" BOOLEAN NOT NULL DEFAULT false,
@@ -64,7 +66,7 @@ CREATE TABLE "receipts" (
 
 -- CreateTable
 CREATE TABLE "receipts_data" (
-    "id" BIGSERIAL NOT NULL,
+    "id" TEXT NOT NULL,
     "receipt_id" TEXT,
     "batch_id" TEXT,
     "path" TEXT NOT NULL,

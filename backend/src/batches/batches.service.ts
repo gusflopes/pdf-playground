@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Param } from '@nestjs/common';
 import { CreateBatchDto } from './dto/create-batch.dto';
 import { UpdateBatchDto } from './dto/update-batch.dto';
 import './string.extensions';
@@ -28,13 +28,20 @@ const parserExample: PdfParser = {
       field: 'name',
       regexMethod: false,
       firstIndex: 'nome do recebedor:',
-      secondIndex: / CPF \/ CNPJ do recebedor/gm,
+      secondIndex: /( chave:)|( CPF \/ CNPJ do recebedor)/m,
     },
     {
       field: 'cpfCnpj',
       regexMethod: false,
       firstIndex: 'CPF / CNPJ do recebedor:',
       secondIndex: / instituição:/gm,
+    },
+    {
+      field: 'pix',
+      regexMethod: false,
+      firstIndex: 'chave:',
+      secondIndex: / CPF \/ CNPJ do recebedor:/gm,
+      // secondIndex: /\d{11}/gm,
     },
   ],
 };
@@ -56,11 +63,24 @@ interface IBatchServiceInput {
 }
 
 interface ITransaction {
-  date: DateTime;
+  date: string;
   amount: string;
   name: string;
   cpfCnpj?: string;
+  pix?: string;
   raw?: string;
+}
+
+interface IReceiptService {
+  batch_id: string;
+  account_id: string;
+  amount: string;
+  cpf_cnpj: string;
+  date: string;
+  payee: string;
+  pix: string;
+  raw: string;
+  file: Express.Multer.File;
 }
 
 @Injectable()
@@ -69,16 +89,117 @@ export class BatchesService implements IBatchesService {
 
   private pdf = require('pdf-parse');
 
+  async index(accountId: string) {
+    return await this.prisma.batch.findMany({
+      orderBy: {
+        created_at: 'desc',
+      },
+      where: {
+        account_id: accountId,
+      },
+      include: {
+        _count: true,
+        // receipts: { select: { account_id: true } },
+      },
+    });
+  }
+
+  async createReceipt(data: IReceiptService) {
+    const receipt = await this.prisma.receipt.create({
+      data: {
+        account: { connect: { id: data.account_id } },
+        batch: { connect: { id: data.batch_id } },
+        // account_id: account.id,
+        amount: data.amount,
+        cpf_cnpj: data.cpf_cnpj,
+        // date: DateTime.fromISO(data.date, { locale: 'pt-BR' }).toISODate(),
+        date: data.date,
+        payee: data.payee,
+        pix: data.pix ? data.pix : null,
+        raw: data.raw ? data.raw : null,
+        file: {
+          create: {
+            batch_id: data.batch_id,
+            account_id: data.account_id,
+            file: data.file.originalname,
+            ext: 'pdf',
+            path: 'not_implemented',
+          },
+        },
+      },
+    });
+    return receipt;
+  }
+
   async handle(input: IBatchServiceInput) {
     const { files, data, scope, raw } = input;
 
+    const newBatch = await this.prisma.batch.create({
+      data: {
+        account: {
+          connect: { id: data.account_id },
+        },
+        name: data.name,
+        parser: data.parser,
+        transaction_type: data.transaction_type,
+      },
+    });
+
     const response = await Promise.all(
       files.map(async (f) => {
-        console.log(f.originalname);
-        return await this.readFile(f, data.parser, raw);
+        // console.log(f.originalname);
+
+        // #1 interpretar arquivo
+        const transaction = await this.readFile(f, data.parser, raw);
+
+        // #2 Salvar o arquivo
+        // todo ...
+
+        // #3 Salvar o comprovante no banco de dados
+        // Todo: salvar tb o arquivo no banco de dados
+        console.log('file: ', f);
+        const receipt = await this.createReceipt({
+          account_id: newBatch.account_id,
+          batch_id: newBatch.id,
+          amount: transaction.amount.replace(/[R$. ]+/gm, '').replace(',', '.'),
+          cpf_cnpj: transaction.cpfCnpj,
+          // date: DateTime.fromISO(transaction.date).toFormat('dd-MM-yyyy'),
+          date: transaction.date,
+          payee: transaction.name,
+          pix: transaction.pix,
+          raw: transaction.raw,
+          file: f,
+        });
+
+        return receipt;
       }),
     );
 
+    // resposta: falta incluir dados do arquivo
+    return {
+      newBatch: {
+        ...newBatch,
+        receipts: response,
+      },
+    };
+
+    // const receipts = await Promise.all(
+    //   response.map(async (r) => {
+    //     return await this.createReceipt({
+    //       account_id: newBatch.account_id,
+    //       batch_id: newBatch.id,
+    //       amount: r.amount.replace(/[R$. ]+/gm, '').replace(',', '.'),
+    //       cpf_cnpj: r.cpfCnpj,
+    //       // date: DateTime.fromISO(r.date).toFormat('dd-MM-yyyy'),
+    //       date: r.date,
+    //       payee: r.name,
+    //       pix: r.pix,
+    //       raw: r.raw,
+    //     });
+    //   }),
+    // );
+
+    // return receipts;
     // const newData = await this.prisma.batch.create({
     //   data: {
     //     name: input.data.name,
@@ -91,7 +212,7 @@ export class BatchesService implements IBatchesService {
     //   },
     // });
 
-    return response;
+    // return response;
   }
 
   async readFile(
@@ -119,7 +240,9 @@ export class BatchesService implements IBatchesService {
   }
 
   private async readPdf(file: Express.Multer.File) {
-    const data: PdfFileProperties = await this.pdf(file.buffer);
+    // Read PDF file with 'pdf-parse' lib
+    // max:1 => Read first page only
+    const data: PdfFileProperties = await this.pdf(file.buffer, { max: 1 });
     // console.log(data);
     const dataJSON = JSON.stringify(data.text);
     return dataJSON;
@@ -145,6 +268,11 @@ export class BatchesService implements IBatchesService {
   ) {
     const startString = data.regexIndexOf(firstIndex, 1) + firstIndex.length;
     // console.log('startString', startString);
+    // console.log('firstIndex.lenght', firstIndex.length);
+    // Não localizado
+    if (startString === firstIndex.length - 1) {
+      return null;
+    }
 
     const endString = data.regexIndexOf(secondIndex, 0);
     // console.log('endString', endString);

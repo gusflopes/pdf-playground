@@ -43,7 +43,6 @@ model Account {
   receipts Receipt[]
   batches  Batch[]
   files    File[]
-
   @@map("accounts")
 }
 
@@ -65,19 +64,20 @@ model Batch {
 }
 
 model Receipt {
-  id         BigInt  @id @default(autoincrement()) @db.BigInt
+  id         String  @id @default(uuid())
   account_id String
   batch_id   String?
-  file_id    BigInt? @db.BigInt
-  account    Account @relation(fields: [account_id], references: [id])
-  batch      Batch?  @relation(fields: [batch_id], references: [id], onDelete: Cascade)
-  file       File?   @relation(fields: [file_id], references: [id])
 
-  date     DateTime
-  amount   Decimal  @db.Decimal(12, 2)
+  account Account @relation(fields: [account_id], references: [id])
+  batch   Batch?  @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  file    File[]
+
+  date     String
+  amount   Decimal @db.Decimal(12, 2)
   payee    String
   cpf_cnpj String
-  pix      String
+  pix      String?
+  raw      String?
 
   type    String?
   memo    String?
@@ -90,11 +90,13 @@ model Receipt {
 }
 
 model File {
-  id         BigInt   @id @default(autoincrement()) @db.BigInt
-  receipt    Account? @relation(fields: [receipt_id], references: [id], onDelete: SetNull)
-  receipt_id String?
+  id         String   @id @default(uuid())
+  receipt    Receipt  @relation(fields: [receipt_id], references: [id], onDelete: Cascade)
+  receipt_id String   @unique
   batch      Batch?   @relation(fields: [batch_id], references: [id])
   batch_id   String?
+  account    Account? @relation(fields: [account_id], references: [id])
+  account_id String?
 
   path String
   file String
@@ -103,8 +105,7 @@ model File {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  Receipt Receipt[]
-  @@map("receipts_data")
+  @@map("receipt_files")
 }
 
 // Tipos de Transação: PIX, TED, DOC, Boleto, TRANSF, ???
