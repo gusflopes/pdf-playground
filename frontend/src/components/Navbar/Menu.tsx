@@ -35,7 +35,7 @@ export const Menu: FC<CustomProps> = ({ dropdown }) => {
             <NextLink href="/pdf-upload">Importar</NextLink>
           </li>
           <li className="hover:bg-secondary">
-            <a>Lotes Importados</a>
+            <NextLink href="/receipts">Lotes Importados</NextLink>
           </li>
           <li className="hover:bg-secondary">
             <a>Alguma coisa</a>

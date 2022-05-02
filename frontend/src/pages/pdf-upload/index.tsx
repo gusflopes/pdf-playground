@@ -1,12 +1,13 @@
 // import React from 'react';
 import type { NextPage } from 'next';
-import classes from './styles.module.scss';
+// import classes from './styles.module.scss';
 import { useDropzone, FileRejection, DropzoneState } from 'react-dropzone';
 import styled from 'styled-components';
 import { useState, useEffect, useMemo } from 'react';
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import Button from '../../components/Button';
 import Navbar from '../../components/Navbar';
+import { api } from '../../providers/api';
 
 const getColor = (props: any) => {
   if (props.isDragAccept) {
@@ -87,7 +88,7 @@ const PdfUpload: NextPage = () => {
   async function handleUpload() {
     console.log('Handle Upload !');
     console.log(files);
-    const accountId = '56b04a9c-32f3-45c2-b870-7f7f3f6668ac';
+    const accountId = '730ada6e-c184-4a89-88d4-19d9429b8123';
     const accessToken =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1ZGY0OWYzOC04NzAxLTQyNzctOTZhYS0xMjMzZjE2NzE2NmIiLCJpYXQiOjE2NDk2ODc0NjQsImV4cCI6MTY0OTY4OTI2NH0.9zyM_uX3P0CZZn81HUfSaIukmzGGcYIfiNK5hGRTHvo';
     const config: AxiosRequestConfig = {
@@ -106,8 +107,8 @@ const PdfUpload: NextPage = () => {
     formData.append('transaction_type', 'PIX');
 
     try {
-      const response: AxiosResponse<Receipt[]> = await axios.post(
-        url,
+      const response: AxiosResponse<Receipt[]> = await api.post(
+        `/accounts/${accountId}/batches`,
         formData,
         config
       );
@@ -122,7 +123,7 @@ const PdfUpload: NextPage = () => {
   useEffect(() => {
     async function getParsers() {
       try {
-        const response = await axios.get(`http://localhost:3333/parsers`);
+        const response = await api.get(`parsers`);
         setParsers(response.data);
       } catch (err) {
         console.log(err);
