@@ -53,7 +53,7 @@ export class BatchesController {
     if (!account) throw new NotFoundException('account not found');
     // return account;
 
-    console.log('payload: ', payload);
+    // console.log('payload: ', payload);
 
     const response = await this.batchesService.handle({
       data: { account_id: account.id, ...payload },
@@ -61,6 +61,8 @@ export class BatchesController {
       scope: userId,
       raw: true,
     });
+    console.log(response);
+    console.log('---response----');
 
     return response;
   }

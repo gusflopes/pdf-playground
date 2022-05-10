@@ -7,7 +7,44 @@ import { DateTime } from 'luxon';
 import { PrismaService } from 'nestjs-prisma';
 import { Batch, Receipt } from '@prisma/client';
 
-const parserExample: PdfParser = {
+const parserBradescoTransferencia: PdfParser = {
+  name: 'P_399_TRANSF',
+  description: 'Comprovante de Transferência do Bradesco',
+  parameters: [
+    {
+      field: 'date',
+      regexMethod: false,
+      firstIndex: 'Descrição: ',
+      secondIndex: / Data de débito/gm,
+    },
+    {
+      field: 'amount',
+      regexMethod: false,
+      firstIndex: 'Data de débito: ',
+      secondIndex: / Valor/gm,
+    },
+    {
+      field: 'name',
+      regexMethod: false,
+      firstIndex: 'Valor ',
+      secondIndex: / Nome do favorecido:/gm,
+    },
+    {
+      field: 'cpfCnpj',
+      regexMethod: false,
+      firstIndex: 'Nome do favorecido: ',
+      secondIndex: / Conta de crédito:/gm,
+    },
+    {
+      field: 'pix',
+      regexMethod: false,
+      firstIndex: 'Apoio ao Cliente ',
+      secondIndex: / Descrição:/gm,
+    },
+  ],
+};
+
+const parserItauPix: PdfParser = {
   name: 'P_341_PIX', // 'P_COMPROVANTE_ITAU_PIX',
   description: 'Comprovante de Pagamento de PIX do Itaú',
   // fields: ['date', 'amount', 'name', 'cpfCnpj'],
@@ -46,7 +83,62 @@ const parserExample: PdfParser = {
   ],
 };
 
-const parsers = [parserExample];
+const destinatarioPF = {
+  field: 'name',
+  regexMethod: false,
+  firstIndex: 'CPF: ',
+  secondIndex: / Nome do favorecido:/gm,
+};
+
+const destinatarioPJ = {
+  field: 'name',
+  regexMethod: false,
+  firstIndex: 'CNPJ: ',
+  secondIndex: / Nome do favorecido:/gm,
+};
+
+const parserBradescoTedOutra: PdfParser = {
+  name: 'P_399_TEDC',
+  description: 'Comprovante de TED "C"',
+  parameters: [
+    {
+      field: 'date',
+      regexMethod: false,
+      firstIndex: 'Serviço de Apoio ao Cliente ',
+      secondIndex: / Data de débito/gm,
+    },
+    {
+      field: 'amount',
+      regexMethod: false,
+      firstIndex: 'ncia: ',
+      secondIndex: / Valor total:/gm,
+    },
+    {
+      field: 'name',
+      regexMethod: false,
+      firstIndex: 'Conta de crédito: ',
+      secondIndex: / \| CNPJ/gm,
+    },
+    {
+      field: 'cpfCnpj',
+      regexMethod: true,
+      firstIndex: 'abc',
+      secondIndex: /(\d{2}.\d{3}.\d{3}\/\d{4}-\d{2})|\d{3}.\d{3}.\d{3}-\d{2}/gm,
+    },
+    {
+      field: 'pix',
+      regexMethod: false,
+      firstIndex: `Valor total: `,
+      secondIndex: / Tarifa: /gm,
+    },
+  ],
+};
+
+const parsers = [
+  parserItauPix,
+  parserBradescoTransferencia,
+  parserBradescoTedOutra,
+];
 
 interface IBatchesService {
   handle: (dto: IBatchServiceInput) => Promise<any>;
@@ -68,6 +160,7 @@ interface ITransaction {
   name: string;
   cpfCnpj?: string;
   pix?: string;
+  // memo?: string;
   raw?: string;
 }
 
@@ -152,25 +245,28 @@ export class BatchesService implements IBatchesService {
         // #1 interpretar arquivo
         const transaction = await this.readFile(f, data.parser, raw);
 
+        console.log('here');
         // #2 Salvar o arquivo
         // todo ...
 
         // #3 Salvar o comprovante no banco de dados
         // Todo: salvar tb o arquivo no banco de dados
-        console.log('file: ', f);
+        // console.log('file: ', f);
+
         const receipt = await this.createReceipt({
           account_id: newBatch.account_id,
           batch_id: newBatch.id,
           amount: transaction.amount.replace(/[R$. ]+/gm, '').replace(',', '.'),
-          cpf_cnpj: transaction.cpfCnpj,
+          cpf_cnpj: transaction.cpfCnpj.trim(),
           // date: DateTime.fromISO(transaction.date).toFormat('dd-MM-yyyy'),
           date: transaction.date,
-          payee: transaction.name,
+          payee: transaction.name.trim(),
           pix: transaction.pix,
           raw: transaction.raw,
           file: f,
         });
 
+        console.log(receipt);
         return receipt;
       }),
     );
@@ -232,9 +328,9 @@ export class BatchesService implements IBatchesService {
 
     return {
       ...thirdStep,
-      cpfCnpj: thirdStep.cpfCnpj
-        ? await this.formatCpfCnpj(thirdStep.cpfCnpj)
-        : null,
+      // cpfCnpj: thirdStep.cpfCnpj
+      //   ? await this.formatCpfCnpj(thirdStep.cpfCnpj)
+      //   : null,
       raw: raw ? secondStep : undefined,
     };
   }
@@ -257,7 +353,11 @@ export class BatchesService implements IBatchesService {
   }
 
   private regexParser(regex: RegExp, data: string) {
+    // console.log('erro');
+    // console.log('data: ', data);
+    // console.log('regex: ', regex);
     const output = data.match(regex)[0];
+    // console.log('aqui nao');
     return output;
   }
 

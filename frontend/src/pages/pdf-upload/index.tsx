@@ -3,11 +3,12 @@ import type { NextPage } from 'next';
 // import classes from './styles.module.scss';
 import { useDropzone, FileRejection, DropzoneState } from 'react-dropzone';
 import styled from 'styled-components';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useContext } from 'react';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import Button from '../../components/Button';
 import Navbar from '../../components/Navbar';
 import { api } from '../../providers/api';
+import { AuthContext } from '../../context/AuthContext';
 
 const getColor = (props: any) => {
   if (props.isDragAccept) {
@@ -39,10 +40,30 @@ const FileContainer = styled.div`
 `;
 
 interface Receipt {
-  amount: string;
-  cpfCnpj: string;
+  id: string;
+  account_id: string;
+  batch_id: string;
   date: string;
-  name: string;
+  amount: string;
+  payee: string;
+  cpf_cnpj: string;
+  pix: string | null;
+  raw: string;
+  type?: string;
+  memo?: string;
+  exclude: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BatchResponse {
+  newBatch: {
+    id: string;
+    account_id: string;
+    parser: string;
+    name: string;
+    receipts: Receipt[];
+  };
 }
 
 const PdfUpload: NextPage = () => {
@@ -54,7 +75,8 @@ const PdfUpload: NextPage = () => {
     isDragReject,
     acceptedFiles,
     fileRejections,
-  }: DropzoneState = useDropzone({ accept: 'application/pdf', maxFiles: 10 });
+  }: DropzoneState = useDropzone({ accept: 'application/pdf', maxFiles: 200 });
+  const { accessToken } = useContext(AuthContext);
 
   const [files, setFiles] = useState(acceptedFiles as File[]);
   const [receipts, setReceipts] = useState([] as Receipt[]);
@@ -88,9 +110,9 @@ const PdfUpload: NextPage = () => {
   async function handleUpload() {
     console.log('Handle Upload !');
     console.log(files);
-    const accountId = '730ada6e-c184-4a89-88d4-19d9429b8123';
-    const accessToken =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1ZGY0OWYzOC04NzAxLTQyNzctOTZhYS0xMjMzZjE2NzE2NmIiLCJpYXQiOjE2NDk2ODc0NjQsImV4cCI6MTY0OTY4OTI2NH0.9zyM_uX3P0CZZn81HUfSaIukmzGGcYIfiNK5hGRTHvo';
+    const accountId = '814bd772-62fa-4e28-b24c-6192078595db';
+    // const accessToken =
+    //   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5ZDY1YTc5Ny03MGQ1LTRlYWQtYTlkMi1kZGYxNWEzYTYzNmUiLCJpYXQiOjE2NTIxNzE2NzgsImV4cCI6MTY1MjE3MzQ3OH0.n0FitA4WcF4DhlnpuZuQfhYI1Xc9QN13FwWEjXebUB0';
     const config: AxiosRequestConfig = {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -102,18 +124,22 @@ const PdfUpload: NextPage = () => {
     files.forEach((file) => {
       formData.append('files', file);
     });
-    formData.append('name', 'Primeira Importação');
-    formData.append('parser', 'P_341_PIX');
-    formData.append('transaction_type', 'PIX');
+    formData.append('name', 'Terceira Importação');
+    formData.append('parser', 'P_399_TEDC');
+    formData.append('transaction_type', 'TEDC');
+
+    // formData.append('parser', 'P_399_Transferencia');
+    // formData.append('parser', 'P_341_PIX');
+    // formData.append('transaction_type', 'PIX');
 
     try {
-      const response: AxiosResponse<Receipt[]> = await api.post(
+      const response: AxiosResponse<BatchResponse> = await api.post(
         `/accounts/${accountId}/batches`,
         formData,
         config
       );
       console.log(response.data);
-      setReceipts(response.data);
+      setReceipts(response.data.newBatch.receipts);
       setFiles([]);
     } catch (err) {
       console.log(err);
@@ -205,8 +231,8 @@ const PdfUpload: NextPage = () => {
         <h4>Receipts</h4>
         {receipts &&
           receipts.map((r) => (
-            <li key={`${r.date}-${r.cpfCnpj}-${r.amount}`}>
-              {r.date} - {r.name} - {r.cpfCnpj} - {r.amount}
+            <li key={`${r.date}-${r.cpf_cnpj}-${r.amount}`}>
+              {r.date} - {r.payee} - {r.cpf_cnpj} - {r.amount}
             </li>
           ))}
       </aside>

@@ -15,7 +15,7 @@ type PdfFileProperties = {
 type ParserParameter = {
   field: string;
   regexMethod: boolean;
-  firstIndex: string | null;
+  firstIndex: string | null; // regexp tb?
   secondIndex: RegExp;
   formatFn?: (i: string) => Promise<string>;
 };

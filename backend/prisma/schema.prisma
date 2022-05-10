@@ -115,12 +115,14 @@ enum TransactionTypes {
   DOC
   TEDC // TED TIPO "C"
   TEDD // TED TIPO "D"
-  TRANF // TRANSFERÊNCIA
+  TRANSF // TRANSFERÊNCIA
 }
 
 enum Parser {
   // Parser_BANCO_TRANSACAO
   // P_ITAU_PIX
+  P_399_TEDC
+  P_399_TRANSF
   P_341_PIX // Parser: Itau Pix
   P_748_TED // Parser: Sicredi TED
   // P_748_TEDD // Parser: Sicredi TED Tipo "D"
